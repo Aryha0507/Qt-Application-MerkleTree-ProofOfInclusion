@@ -1,0 +1,10 @@
+# Qt Creator user and build files
+*.pro.user
+*.pro.user.*
+build-*/
+debug/
+release/
+Makefile*
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
