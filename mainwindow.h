@@ -2,6 +2,11 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QGraphicsScene>
+#include <QGraphicsRectItem>
+#include <vector>                   // for std::vector
+#include <string>
+#include <QComboBox>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -28,6 +33,10 @@ private slots:
 private:
     Ui::MainWindow *ui;
     QNetworkAccessManager *netManager;   // add this member
+    QGraphicsScene *scene;
+    QComboBox *comboBoxVerifyTxid;
+    std::vector<std::vector<QGraphicsRectItem*>> nodeRects;
+    void drawMerkleTreeGraphics(const std::vector<std::vector<std::string>>& levels);
 };
 
 #endif // MAINWINDOW_H

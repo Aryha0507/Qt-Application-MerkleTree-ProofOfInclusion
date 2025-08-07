@@ -13,6 +13,9 @@
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
+  <property name="toolTip">
+   <string extracomment="Show proof-of-inclusion for the selected leaf"/>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QPlainTextEdit" name="plainTextEditInput">
     <property name="geometry">
@@ -36,6 +39,9 @@
       <height>29</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string extracomment="Number of dummy transactions to create"/>
+    </property>
    </widget>
    <widget class="QPushButton" name="pushButtonGenerate">
     <property name="geometry">
@@ -45,6 +51,9 @@
       <width>90</width>
       <height>29</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string extracomment="Create N dummy transactions (Tx1, Tx2, …)"/>
     </property>
     <property name="text">
      <string>Generate</string>
@@ -59,6 +68,9 @@
       <height>29</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string extracomment="Build the Merkle tree and display root, levels, and graphics"/>
+    </property>
     <property name="text">
      <string>Build</string>
     </property>
@@ -71,6 +83,9 @@
       <width>90</width>
       <height>29</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string extracomment="Clear all inputs and outputs"/>
     </property>
     <property name="text">
      <string>Clear</string>
@@ -114,6 +129,9 @@
       <height>28</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string extracomment="Enter the 64-hex block hash to fetch"/>
+    </property>
     <property name="text">
      <string>Enter Testnet block hash</string>
     </property>
@@ -126,6 +144,9 @@
       <width>90</width>
       <height>29</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string extracomment="Fetch real transaction IDs from a Testnet block"/>
     </property>
     <property name="text">
      <string>Fetch Block</string>
@@ -144,19 +165,6 @@
      <string>Leaf Index</string>
     </property>
    </widget>
-   <widget class="QSpinBox" name="spinBoxVerifyIndex">
-    <property name="geometry">
-     <rect>
-      <x>830</x>
-      <y>60</y>
-      <width>71</width>
-      <height>29</height>
-     </rect>
-    </property>
-    <property name="maximum">
-     <number>1000</number>
-    </property>
-   </widget>
    <widget class="QPushButton" name="pushButtonVerify">
     <property name="geometry">
      <rect>
@@ -165,6 +173,9 @@
       <width>90</width>
       <height>29</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string extracomment="Show proof-of-inclusion for the selected leaf"/>
     </property>
     <property name="text">
      <string>Verify Leaf</string>
@@ -181,6 +192,29 @@
     </property>
     <property name="readOnly">
      <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QGraphicsView" name="graphicsViewTree">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>371</y>
+      <width>1401</width>
+      <height>191</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="comboBoxVerifyTxid">
+    <property name="geometry">
+     <rect>
+      <x>800</x>
+      <y>60</y>
+      <width>82</width>
+      <height>28</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string extracomment="Select a transaction ID to verify inclusion in the Merkle root">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Select a transaction ID to verify&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
    </widget>
   </widget>
