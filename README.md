@@ -9,9 +9,6 @@ Interactive Qt GUI to build Merkle Trees from transactions, fetch **Bitcoin Test
 - Cross-platform (Windows/Linux/macOS)
 - Project file: `MerkleTreeBackendQt.pro` (Qt 6, C++17)
 
-| GUI | Proof of Inclusion |
-| --- | --- |
-| ![](docs/merkle_tree_gui.png) | ![](docs/proof_inclusion_example.png) |
 
 ## 🏗 Build (qmake)
 ```bash
