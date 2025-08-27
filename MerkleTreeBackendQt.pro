@@ -2,16 +2,17 @@ QT       += core gui widgets network
 
 
 CONFIG += c++17
-
+TEMPLATE = app
+TARGET = MerkleTreeApp
 
 SOURCES += \
-    main.cpp \
-    mainwindow.cpp \
-    merkletree.cpp
+   src/main.cpp \
+    src/mainwindow.cpp \
+    src/merkletree.cpp
 
 HEADERS += \
-    mainwindow.h \
-    merkletree.h
+    src/mainwindow.h \
+    src/merkletree.h
 
 FORMS += \
     mainwindow.ui
