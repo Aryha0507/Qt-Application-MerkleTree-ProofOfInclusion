@@ -1,0 +1,7 @@
+* text=auto
+*.sh text eol=lf
+*.bat text eol=crlf
+*.cpp text=auto
+*.h   text=auto
+*.ui  text=auto
+*.pro text=auto
