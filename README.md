@@ -16,7 +16,6 @@ qmake
 make    # or jom/nmake on Windows
 ## 📁 Structure
 src/        # C++ & Qt UI sources
-docs/       # screenshots, diagrams, report
 examples/   # sample transaction lists
 tests/      # optional unit tests
 MerkleTreeBackendQt.pro
