@@ -16,6 +16,7 @@
 #include <QPen>
 #include <algorithm>
 #include <QMessageBox>
+#include <QColor>
 
 #include "merkletree.h"    // getMerkleTreeLevels()
 #include <openssl/sha.h>   // sha256()
@@ -48,39 +49,34 @@ MainWindow::~MainWindow() {
     delete ui;
 }
 
-// 1) Generate dummy transactions Tx1…TxN
+// 1) Generateing dummy transactions Tx1…TxN
 void MainWindow::handleGenerateTransactions() {
     int count = ui->spinBoxCount->value();
     QStringList lines;
     for (int i = 1; i <= count; ++i)
         lines << QString("Tx%1").arg(i);
 
-    // Populate both input box and combo box
+// Populating both input box and combo box
     ui->plainTextEditInput->setPlainText(lines.join('\n'));
     ui->comboBoxVerifyTxid->clear();
     ui->comboBoxVerifyTxid->addItems(lines);
 }
 
-// 2) Build Merkle tree & display text + graphics
+// 2) Building Merkle tree & display text + graphics
 void MainWindow::handleBuildMerkle() {
-    // Read input lines
     QStringList lines = ui->plainTextEditInput
                             ->toPlainText()
                             .split('\n', Qt::SkipEmptyParts);
 
-    // Populate combo box
     ui->comboBoxVerifyTxid->clear();
     ui->comboBoxVerifyTxid->addItems(lines);
 
-    // Convert to std::vector<string>
     std::vector<std::string> txs;
     for (const QString &ln : lines)
         txs.push_back(ln.toStdString());
 
-    // Build all levels
     auto levels = getMerkleTreeLevels(txs);
 
-    // Display Merkle root
     if (!levels.empty() && !levels.back().empty()) {
         ui->labelOutput->setText(
             "Merkle Root: " +
@@ -90,7 +86,6 @@ void MainWindow::handleBuildMerkle() {
         ui->labelOutput->setText("No valid transactions!");
     }
 
-    // Display full tree in text
     QString treeText;
     for (int lvl = 0; lvl < int(levels.size()); ++lvl) {
         treeText += QString("Level %1:\n").arg(lvl);
@@ -100,11 +95,13 @@ void MainWindow::handleBuildMerkle() {
     }
     ui->plainTextEditTree->setPlainText(treeText);
 
-    // Draw it graphically
     drawMerkleTreeGraphics(levels);
+
+    if (!lines.isEmpty())
+        ui->comboBoxVerifyTxid->setCurrentIndex(0);
 }
 
-// 3) Clear all fields
+// 3) For Clearing all fields with clear button
 void MainWindow::handleClearFields() {
     ui->plainTextEditInput->clear();
     ui->comboBoxVerifyTxid->clear();
@@ -112,6 +109,9 @@ void MainWindow::handleClearFields() {
     ui->plainTextEditTree->clear();
     ui->plainTextEditProof->clear();
     ui->spinBoxCount->setValue(4);
+    scene->clear();
+    nodeRects.clear();
+    nodeTexts.clear();
 }
 
 // 4) Fetch Testnet block txids via REST & rebuild
@@ -127,13 +127,12 @@ void MainWindow::handleFetchBlock() {
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         if (reply->error() != QNetworkReply::NoError) {
-            QMessageBox::warning(this,
-                                 "Fetch Error",
+            QMessageBox::warning(this, "Fetch Error",
                                  "Could not fetch block data:\n" + reply->errorString());
             reply->deleteLater();
             return;
         }
-        // Parse JSON array of txids
+
         QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
         if (!doc.isArray()) {
             ui->labelOutput->setText("Unexpected response format");
@@ -141,7 +140,6 @@ void MainWindow::handleFetchBlock() {
             return;
         }
 
-        // Populate input & combo
         QJsonArray arr = doc.array();
         QStringList txList;
         for (auto v : arr) txList << v.toString();
@@ -149,36 +147,43 @@ void MainWindow::handleFetchBlock() {
         ui->comboBoxVerifyTxid->clear();
         ui->comboBoxVerifyTxid->addItems(txList);
 
-        // Rebuild tree + graphics
         handleBuildMerkle();
         reply->deleteLater();
     });
 }
 
-// 5) Proof-of-inclusion: text proof + graphics highlight
+// 5) Proof-of-inclusion: text proof + highlight
 void MainWindow::handleVerifyLeaf() {
-    // Gather input
     QStringList lines = ui->plainTextEditInput
                             ->toPlainText()
                             .split('\n', Qt::SkipEmptyParts);
+
+    if (lines.isEmpty()) {
+        QMessageBox::information(this, "Nothing to verify",
+                                 "Enter or fetch transactions, then click Build.");
+        return;
+    }
+    if (nodeRects.empty()) {
+        QMessageBox::information(this, "No tree yet",
+                                 "Build the Merkle tree first (click Build).");
+        return;
+    }
+
     std::vector<std::string> txs;
     for (const QString &ln : lines)
         txs.push_back(ln.toStdString());
 
     auto levels = getMerkleTreeLevels(txs);
 
-    // Determine selected index from combo
     int idx = ui->comboBoxVerifyTxid->currentIndex();
     int leafCount = levels.empty() ? 0 : int(levels[0].size());
     if (idx < 0 || idx >= leafCount) {
-        QMessageBox::warning(this,
-                             "Invalid Selection",
+        QMessageBox::warning(this, "Invalid Selection",
                              QString("You must pick a transaction ID from the list (0…%1).")
                                  .arg(leafCount - 1));
         return;
     }
 
-    // Build text-based proof
     QString proof;
     std::string running = levels[0][idx];
     proof += "Leaf [" + QString::number(idx) + "]: " +
@@ -196,8 +201,8 @@ void MainWindow::handleVerifyLeaf() {
                      .arg(left ? "L" : "R")
                      .arg(QString::fromStdString(siblingHash));
 
-        if (left)  running = sha256(siblingHash + running);
-        else       running = sha256(running + siblingHash);
+        if (left) running = sha256(siblingHash + running);
+        else      running = sha256(running + siblingHash);
 
         proof += "→ Parent: " +
                  QString::fromStdString(running) + "\n\n";
@@ -210,30 +215,54 @@ void MainWindow::handleVerifyLeaf() {
                  ? "✔️ Verified: root = " + root
                  : "❌ Mismatch: got " + QString::fromStdString(running) +
                        ", expect " + root;
-
     ui->plainTextEditProof->setPlainText(proof);
 
-    // Highlight path in graphics
-    // 1) clear old highlights
-    for (auto &levelRects : nodeRects)
+    // Clear old highlights
+    for (auto &levelRects : nodeRects) {
         for (auto *r : levelRects) {
             r->setBrush(Qt::NoBrush);
             r->setPen(QPen(Qt::black));
         }
-
-    // 2) recompute path indices
-    idx = ui->comboBoxVerifyTxid->currentIndex();
-    std::vector<int> path = { idx };
-    for (int lvl = 0; lvl + 1 < int(levels.size()); ++lvl) {
-        idx = idx / 2;
-        path.push_back(idx);
+    }
+    // Reset all text colors to a readable default for the dark background
+    for (auto &levelTexts : nodeTexts) {
+        for (auto *t : levelTexts) {
+            t->setDefaultTextColor(Qt::white);
+        }
     }
 
-    // 3) apply highlight (white fill, red border)
+
+    // For Highlighting the path
+    int cur = ui->comboBoxVerifyTxid->currentIndex();
+    std::vector<int> path = { cur };
+    for (int lvl = 0; lvl + 1 < int(levels.size()); ++lvl) {
+        cur /= 2;
+        path.push_back(cur);
+    }
+
     for (int lvl = 0; lvl < int(path.size()); ++lvl) {
-        auto *rect = nodeRects[lvl][ path[lvl] ];
-        rect->setBrush(QBrush(Qt::white));
-        rect->setPen(QPen(Qt::red, 2));
+        int idxOnLevel = path[lvl];
+        if (lvl >= 0 && lvl < int(nodeRects.size()) &&
+            idxOnLevel >= 0 && idxOnLevel < int(nodeRects[lvl].size())) {
+            auto *rect = nodeRects[lvl][idxOnLevel];
+            rect->setBrush(QBrush(Qt::white));
+            rect->setPen(QPen(Qt::red, 2));
+            nodeTexts[lvl][idxOnLevel]->setDefaultTextColor(Qt::black);
+        }
+    }
+
+    // Highlight sibling nodes
+    for (int lvl = 0; lvl + 1 < int(levels.size()); ++lvl) {
+        int child = path[lvl];
+        int sib = (child % 2 == 0) ? child + 1 : child - 1;
+        if (sib < 0 || sib >= int(levels[lvl].size())) continue;
+        if (lvl >= 0 && lvl < int(nodeRects.size()) &&
+            sib >= 0 && sib < int(nodeRects[lvl].size())) {
+            auto *sibRect = nodeRects[lvl][sib];
+            sibRect->setBrush(QBrush(QColor(200, 230, 255)));
+            sibRect->setPen(QPen(Qt::blue, 2));
+            nodeTexts[lvl][sib]->setDefaultTextColor(Qt::black);
+        }
     }
 }
 
@@ -248,6 +277,8 @@ void MainWindow::drawMerkleTreeGraphics(
 
     nodeRects.clear();
     nodeRects.resize(levelCount);
+    nodeTexts.clear();
+    nodeTexts.resize(levelCount);
 
     const int nodeW = 80, nodeH = 30, vGap = 60, hGap = 20;
     int maxNodes = 0;
@@ -268,20 +299,18 @@ void MainWindow::drawMerkleTreeGraphics(
 
         for (int j = 0; j < cnt; ++j) {
             int x = x0 + j * (nodeW + hGap);
-            // draw & store
+
             auto *rect = scene->addRect(x, y, nodeW, nodeH);
             nodeRects[i].push_back(rect);
-            // text
-            auto *ti = scene->addText(
-                QString::fromStdString(levels[i][j]).left(8) + "..."
-                );
+
+            auto *ti = scene->addText(QString::fromStdString(levels[i][j]).left(8) + "...");
             ti->setPos(x + 4, y + 4);
-            // record for lines
+            nodeTexts[i].push_back(ti);
+
             pos[i].push_back(QPointF(x + nodeW/2, y + nodeH));
         }
     }
 
-    // lines
     for (int i = 0; i + 1 < levelCount; ++i) {
         for (int j = 0; j < int(pos[i].size()); ++j) {
             auto c = pos[i][j];
